@@ -6,6 +6,18 @@ const server = net.createServer((c) => {
       console.log('Logging an error');
    })
 });
+
+let hasSurveyStarted, name, gender, hobbies, homePage;
+let output = 'Input: ';
+let clients = [];
+let step = 1;
+
+const surveyResponseModel = {
+1: `Output:\n  Starting the survey\n  type: text\n  value: What is your name?\nInput:`,
+2: `Output:\n  type: radio\n  value: what is your gender?\n  options: [Male, Female]\nInput:`,
+3: `Output:\n  type: checkbox\n  value: what are your hobbies?\n  options: [Fishing, Cooking, Swimming]\nInput:`
+};
+
 const signinPage = `HTTP/1.1 200 OK
 Content-Type: text/html
 
@@ -18,42 +30,6 @@ Content-Type: text/html
 </head></html>
 `;
 
-let hasSurveyStarted, name, gender, hobbies;
-let output = 'Input: ';
-let clients = [];
-let step = 1;
-
-const surveyResponseModel = {
-   1: 
-`Output
-   Starting the survey
-   type: text
-   value: What is your name?
-Input:`,
-   2: 
-`Output: 
-   type: radio
-   value: what is your gender?
-   options: [Male, Female]
-Input:`,
-   3: 
-`Output:
-   type: checkbox
-   value: what are your hobbies?
-   options: [Fishing, Cooking, Swimming]
-Input:`};
-var homePage = `HTTP/1.1 200 OK
-Content-Type: text/html
-
-<html><head>
-<h3>Survey App</h3>
-<textarea style="width: 500px; height: 500px;">HALA</textarea><br>
-<form style="margin-top: 10px" action=/input method="post">
-   Input: <input type = "text" name = "client-input" value = "">
-   <input type="submit" value="submit">
-</form>
-</head></html>
-`;
 const notFoundPage = `HTTP/1.1 404
 Content-Type: text/html
 
