@@ -73,6 +73,16 @@ Content-Type: text/html
 `;
 }
 
+const validateFirstInput = (input) => {
+   if(input.toLowerCase() === 'start survey') {
+      output += `\n${input}\n${surveyResponseModel[step]}`;
+   }
+   else {
+      output += `\n${input}\nPlease enter "start survey" to start the survey.\nInput:`;
+      step--;
+   }
+}
+
 const selectGender = (input) => {
    if(input.toLowerCase() === 'male' || input.toLowerCase() === 'female') {
       gender = input;
@@ -103,7 +113,7 @@ const selectHobbies = (input) => {
 const handleSurveyFlow = (surveyAnswer) => {
    switch(step) {
       case 1:
-         output += `\n${surveyAnswer}\n${surveyResponseModel[step]}`;
+         validateFirstInput(surveyAnswer);
          break;
       case 2:
          name = surveyAnswer;
