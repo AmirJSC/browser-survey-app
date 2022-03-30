@@ -9,7 +9,7 @@ const server = net.createServer((c) => {
 
 let hasSurveyStarted, name, gender, hobbies, homePage;
 let output = 'Input: ';
-let clients = [];
+let clients = {};
 let step = 1;
 
 const surveyResponseModel = {
@@ -128,13 +128,23 @@ const handleSurveyFlow = (surveyAnswer) => {
    }
 }
 
+const handleSignin = (userName) => {
+   if(!(userName in clients)) {
+      clients[userName] = {};
+      clients[userName].step = 1;
+      clients[userName].output = 'Input: ';
+   }
+    
+}
+
 const handlePostRequest = (url, data) => {
+   let clientInput = getClientInput(data);
    if(url === '/signin') {
-      return redirect('homepage');    
+        handleSignin(clientInput);
+        return redirect('homepage'); 
    }
    else if(url === '/input') {
-      let surveyAnswer = getSurveyAnswer(data);
-      handleSurveyFlow(surveyAnswer);
+      handleSurveyFlow(clientInput);
       step++;
       return redirect('homepage');
    }
@@ -165,11 +175,7 @@ const handleHttpMethod = (data) => {
    }
 }
 
-const getLoginCredentials = () => {
-
-}
-
-const getSurveyAnswer = (data) => {
+const getClientInput = (data) => {
    let dataArray = data.split('\n');
    let surveyAnswer = dataArray[dataArray.length-1].split('=')[1];
    return removeExcessCharacters(surveyAnswer);
@@ -188,6 +194,7 @@ function handleConnection(client) {
    client.once('close', onConnClose);
 
    function onReceiveData(data) {
+      // console.log(Object.keys(clients).length);
       console.log(data);
    
       const serverResponse = handleHttpMethod(data);
