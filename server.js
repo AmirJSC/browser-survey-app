@@ -120,11 +120,12 @@ const storeClient = (userName) => {
 const handlePostRequest = (url, data) => {
    let clientInput = getClientInput(data);
    if(url === '/signin') {
-        storeClient(clientInput);
-        return redirect(`input/${clientInput}`); 
+         clientInput = clientInput.split('&')[0];
+         storeClient(clientInput);
+         return redirect(`input/${clientInput}`); 
    }
    else if(url.match(/\/input.*/g)) {
-      let userName = url.split('/')[2];
+      let userName = url.split('/')[2].split('&')[0];
       let client = clients[userName];
       handleSurveyFlow(clientInput, client);
       client.step++;
