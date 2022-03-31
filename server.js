@@ -21,6 +21,7 @@ Content-Type: text/html
    <h3>Sign in</h3>
    <form action=/signin method="post">
       Username: <input type = "text" name = "username" value = ""><br>
+      Password: <input type = "password" name = "password" value = ""><br>
       <input type="submit" value="Log in">
    </form>
 </head></html>
@@ -53,57 +54,57 @@ const redirect = (slug) => {
 Location: http://localhost:8000/${slug}`;
 }
 
-const validateFirstInput = (input, client) => {
-   if(input.toLowerCase() === 'start survey') {
-      client.output += `\n${input}\n${surveyResponseModel[client.step]}`;
+const validateFirstInput = (clientInput, client) => {
+   if(clientInput.toLowerCase() === 'start survey') {
+      client.output += `\n${clientInput}\n${surveyResponseModel[client.step]}`;
    }
    else {
-      client.output += `\n${input}\nPlease enter "start survey" to start the survey.\nInput:`;
+      client.output += `\n${clientInput}\nPlease enter "start survey" to start the survey.\nInput:`;
       client.step--;
    }
 }
 
-const selectGender = (input, client) => {
-   if(input.toLowerCase() === 'male' || input.toLowerCase() === 'female') {
-      client.gender = input;
-      client.output += `\n${input}\n${surveyResponseModel[client.step]}`;
+const selectGender = (clientInput, client) => {
+   if(clientInput.toLowerCase() === 'male' || clientInput.toLowerCase() === 'female') {
+      client.gender = clientInput;
+      client.output += `\n${clientInput}\n${surveyResponseModel[client.step]}`;
    }
    else {
-      client.output += `\n${input}\nPlease enter from one of the choices.\n${surveyResponseModel[client.step-1]}`;
+      client.output += `\n${clientInput}\nPlease enter from one of the choices.\n${surveyResponseModel[client.step-1]}`;
       client.step--;
    }
 }  
 
-const selectHobbies = (input, client) => {
+const selectHobbies = (clientInput, client) => {
    const hobbySelection = ['fishing', 'cooking', 'swimming'];
-   let isHobbyValid = input.split(',').every((hobby) => {
+   let isHobbyValid = clientInput.split(',').every((hobby) => {
        return hobbySelection.includes(hobby.trim().toLowerCase());
    });
 
    if(isHobbyValid) {
-      client.hobbies = input;
-      client.output += `\n${input}\nOutput:\nA ${client.gender} ${client.name} who likes ${client.hobbies}.`;
+      client.hobbies = clientInput;
+      client.output += `\n${clientInput}\nOutput:\nA ${client.gender} ${client.name} who likes ${client.hobbies}.`;
    }
    else {
-      client.output += `\n${input}\nPlease enter from one of the choices.\n${surveyResponseModel[client.step-1]}`;
+      client.output += `\n${clientInput}\nPlease enter from one of the choices.\n${surveyResponseModel[client.step-1]}`;
       client.step--;
    }
 }
 
-const handleSurveyFlow = (surveyAnswer, client) => {
+const handleSurveyFlow = (clientInput, client) => {
    switch(client.step) {
       case 1:
-         validateFirstInput(surveyAnswer, client);
+         validateFirstInput(clientInput, client);
          break;
       case 2:
-         client.name = surveyAnswer;
-         client.output += `\n${surveyAnswer}\n${surveyResponseModel[client.step]}`;
+         client.name = clientInput;
+         client.output += `\n${clientInput}\n${surveyResponseModel[client.step]}`;
          break;
       case 3:
-         selectGender(surveyAnswer, client);
+         selectGender(clientInput, client);
          break;
       case 4:
-         selectHobbies(surveyAnswer, client);
+         selectHobbies(clientInput, client);
          break;
    }
 }
@@ -172,8 +173,8 @@ const handleHttpMethod = (data) => {
 
 const getClientInput = (data) => {
    let dataArray = data.split('\n');
-   let surveyAnswer = dataArray[dataArray.length-1].split('=')[1];
-   return removeExcessCharacters(surveyAnswer);
+   let clientInput = dataArray[dataArray.length-1].split('=')[1];
+   return removeExcessCharacters(clientInput);
 }
 
 const removeExcessCharacters = (str) => {
