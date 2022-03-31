@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 const net = require('net');
 const server = net.createServer((c) => {
    c.on('error', (err) => {
@@ -7,10 +6,7 @@ const server = net.createServer((c) => {
    })
 });
 
-let hasSurveyStarted, name, gender, hobbies, homePage;
-let output = 'Input: ';
-let clients = [];
-let step = 1;
+let clients = {};
 
 const surveyResponseModel = {
 1: `Output:\n  Starting the survey\n  type: text\n  value: What is your name?\nInput:`,
@@ -25,6 +21,7 @@ Content-Type: text/html
    <h3>Sign in</h3>
    <form action=/signin method="post">
       Username: <input type = "text" name = "username" value = ""><br>
+      Password: <input type = "password" name = "password" value = ""><br>
       <input type="submit" value="Log in">
    </form>
 </head></html>
@@ -35,9 +32,9 @@ Content-Type: text/html
 
 <html><head>
 <h1>Page not Found</h1>
+<p>Please <a href="/signin">sign in</a></p>
 </head></html>
 `;
-const pageModel = {homePage, notFoundPage, signinPage};
 
 server.on('connection', handleConnection);
 server.listen(8000, function () {
@@ -57,105 +54,115 @@ const redirect = (slug) => {
 Location: http://localhost:8000/${slug}`;
 }
 
-const redefineHomePage = () => {
-   
-   pageModel.homePage = `HTTP/1.1 200 OK
-Content-Type: text/html
-
-<html><head>
-<h3>Survey App</h3>
-<textarea style="width: 500px; height: 500px;">${output}</textarea><br>
-<form style="margin-top: 10px" action=/input method="post">
-   Input: <input type = "text" name = "client-input" value = "">
-   <input type="submit" value="submit">
-</form>
-</head></html>
-`;
-}
-
-const validateFirstInput = (input) => {
-   if(input.toLowerCase() === 'start survey') {
-      output += `\n${input}\n${surveyResponseModel[step]}`;
+const validateFirstInput = (clientInput, client) => {
+   if(clientInput.toLowerCase() === 'start survey') {
+      client.output += `\n${clientInput}\n${surveyResponseModel[client.step]}`;
    }
    else {
-      output += `\n${input}\nPlease enter "start survey" to start the survey.\nInput:`;
-      step--;
+      client.output += `\n${clientInput}\nPlease enter "start survey" to start the survey.\nInput:`;
+      client.step--;
    }
 }
 
-const selectGender = (input) => {
-   if(input.toLowerCase() === 'male' || input.toLowerCase() === 'female') {
-      gender = input;
-      output += `\n${input}\n${surveyResponseModel[step]}`;
+const selectGender = (clientInput, client) => {
+   if(clientInput.toLowerCase() === 'male' || clientInput.toLowerCase() === 'female') {
+      client.gender = clientInput;
+      client.output += `\n${clientInput}\n${surveyResponseModel[client.step]}`;
    }
    else {
-      output += `\n${input}\nPlease enter from one of the choices.\n${surveyResponseModel[step-1]}`;
-      step--;
+      client.output += `\n${clientInput}\nPlease enter from one of the choices.\n${surveyResponseModel[client.step-1]}`;
+      client.step--;
    }
 }  
 
-const selectHobbies = (input) => {
+const selectHobbies = (clientInput, client) => {
    const hobbySelection = ['fishing', 'cooking', 'swimming'];
-   let isHobbyValid = input.split(',').every((hobby) => {
+   let isHobbyValid = clientInput.split(',').every((hobby) => {
        return hobbySelection.includes(hobby.trim().toLowerCase());
    });
 
    if(isHobbyValid) {
-       hobbies = input;
-       output += `\n${input}\nOutput:\nA ${gender} ${name} who likes ${hobbies}.`;
+      client.hobbies = clientInput;
+      client.output += `\n${clientInput}\nOutput:\nA ${client.gender} ${client.name} who likes ${client.hobbies}.`;
    }
    else {
-       output += `\n${input}\nPlease enter from one of the choices.\n${surveyResponseModel[step-1]}`;
-       step--;
+      client.output += `\n${clientInput}\nPlease enter from one of the choices.\n${surveyResponseModel[client.step-1]}`;
+      client.step--;
    }
 }
 
-const handleSurveyFlow = (surveyAnswer) => {
-   switch(step) {
+const handleSurveyFlow = (clientInput, client) => {
+   switch(client.step) {
       case 1:
-         validateFirstInput(surveyAnswer);
+         validateFirstInput(clientInput, client);
          break;
       case 2:
-         name = surveyAnswer;
-         output += `\n${surveyAnswer}\n${surveyResponseModel[step]}`;
+         client.name = clientInput;
+         client.output += `\n${clientInput}\n${surveyResponseModel[client.step]}`;
          break;
       case 3:
-         selectGender(surveyAnswer);
+         selectGender(clientInput, client);
          break;
       case 4:
-         selectHobbies(surveyAnswer);
+         selectHobbies(clientInput, client);
          break;
    }
+}
+
+const storeClient = (userName) => {
+   if(!(userName in clients)) {
+      clients[userName] = {};
+      clients[userName].step = 1;
+      clients[userName].output = 'Input: ';
+   } 
 }
 
 const handlePostRequest = (url, data) => {
+   let clientInput = getClientInput(data);
    if(url === '/signin') {
-      return redirect('homepage');    
+         clientInput = clientInput.split('&')[0];
+         storeClient(clientInput);
+         return redirect(`input/${clientInput}`); 
    }
-   else if(url === '/input') {
-      let surveyAnswer = getSurveyAnswer(data);
-      handleSurveyFlow(surveyAnswer);
-      step++;
-      return redirect('homepage');
+   else if(url.match(/\/input.*/g)) {
+      let userName = url.split('/')[2].split('&')[0];
+      let client = clients[userName];
+      handleSurveyFlow(clientInput, client);
+      client.step++;
+      return redirect(`input/${userName}`);
    }
 }
 
 const handleGetRequest = (url) => {
-   if(url === '/homepage' || url === '/') {
-      return pageModel.homePage;
+   if(url === '/signin' || url === '/homepage' || url === '/') {
+      return signinPage;
    }
-   else if(url === '/signin') {
-      return pageModel.signinPage;
+   else if(url.match(/\/input.*/g)) {
+      let userName = url.split('/')[2];
+      if(!clients[userName]) {
+         return redirect('signin')
+      }
+      return `HTTP/1.1 200 OK
+      Content-Type: text/html
+
+      <html><head>
+      <h3>Survey App</h3>
+      <textarea style="width: 500px; height: 500px;">${clients[userName].output}</textarea><br>
+      <form style="margin-top: 10px" action=/input/${userName} method="post">
+         Input: <input type = "text" name = "client-input" value = "">
+         <input type="submit" value="submit">
+      </form>
+      </head></html>
+      `;
    }
    else {
-      return pageModel.notFoundPage;
+      return notFoundPage;
    }
 }
 
 const handleHttpMethod = (data) => {
    let httpMethod = getHttpMethod(data);
    let url = getUrl(data);
-   redefineHomePage();
 
    if(httpMethod === 'GET') {
       return handleGetRequest(url);
@@ -165,14 +172,10 @@ const handleHttpMethod = (data) => {
    }
 }
 
-const getLoginCredentials = () => {
-
-}
-
-const getSurveyAnswer = (data) => {
+const getClientInput = (data) => {
    let dataArray = data.split('\n');
-   let surveyAnswer = dataArray[dataArray.length-1].split('=')[1];
-   return removeExcessCharacters(surveyAnswer);
+   let clientInput = dataArray[dataArray.length-1].split('=')[1];
+   return removeExcessCharacters(clientInput);
 }
 
 const removeExcessCharacters = (str) => {
@@ -188,11 +191,8 @@ function handleConnection(client) {
    client.once('close', onConnClose);
 
    function onReceiveData(data) {
-      console.log(data);
-   
       const serverResponse = handleHttpMethod(data);
       
-      console.log(step);
       client.write(serverResponse);
       client.end();
    }
