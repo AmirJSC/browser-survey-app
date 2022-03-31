@@ -53,57 +53,57 @@ const redirect = (slug) => {
 Location: http://localhost:8000/${slug}`;
 }
 
-const validateFirstInput = (input, path) => {
+const validateFirstInput = (input, client) => {
    if(input.toLowerCase() === 'start survey') {
-      clients[path].output += `\n${input}\n${surveyResponseModel[clients[path].step]}`;
+      client.output += `\n${input}\n${surveyResponseModel[client.step]}`;
    }
    else {
-      clients[path].output += `\n${input}\nPlease enter "start survey" to start the survey.\nInput:`;
-      clients[path].step--;
+      client.output += `\n${input}\nPlease enter "start survey" to start the survey.\nInput:`;
+      client.step--;
    }
 }
 
-const selectGender = (input, path) => {
+const selectGender = (input, client) => {
    if(input.toLowerCase() === 'male' || input.toLowerCase() === 'female') {
-      clients[path].gender = input;
-      clients[path].output += `\n${input}\n${surveyResponseModel[clients[path].step]}`;
+      client.gender = input;
+      client.output += `\n${input}\n${surveyResponseModel[client.step]}`;
    }
    else {
-      clients[path].output += `\n${input}\nPlease enter from one of the choices.\n${surveyResponseModel[clients[path].step-1]}`;
-      clients[path].step--;
+      client.output += `\n${input}\nPlease enter from one of the choices.\n${surveyResponseModel[client.step-1]}`;
+      client.step--;
    }
 }  
 
-const selectHobbies = (input, path) => {
+const selectHobbies = (input, client) => {
    const hobbySelection = ['fishing', 'cooking', 'swimming'];
    let isHobbyValid = input.split(',').every((hobby) => {
        return hobbySelection.includes(hobby.trim().toLowerCase());
    });
 
    if(isHobbyValid) {
-       clients[path].hobbies = input;
-       clients[path].output += `\n${input}\nOutput:\nA ${clients[path].gender} ${clients[path].name} who likes ${clients[path].hobbies}.`;
+      client.hobbies = input;
+      client.output += `\n${input}\nOutput:\nA ${client.gender} ${client.name} who likes ${client.hobbies}.`;
    }
    else {
-      clients[path].output += `\n${input}\nPlease enter from one of the choices.\n${surveyResponseModel[clients[path].step-1]}`;
-      clients[path].step--;
+      client.output += `\n${input}\nPlease enter from one of the choices.\n${surveyResponseModel[client.step-1]}`;
+      client.step--;
    }
 }
 
-const handleSurveyFlow = (surveyAnswer, path) => {
-   switch(clients[path].step) {
+const handleSurveyFlow = (surveyAnswer, client) => {
+   switch(client.step) {
       case 1:
-         validateFirstInput(surveyAnswer, path);
+         validateFirstInput(surveyAnswer, client);
          break;
       case 2:
-         clients[path].name = surveyAnswer;
-         clients[path].output += `\n${surveyAnswer}\n${surveyResponseModel[clients[path].step]}`;
+         client.name = surveyAnswer;
+         client.output += `\n${surveyAnswer}\n${surveyResponseModel[client.step]}`;
          break;
       case 3:
-         selectGender(surveyAnswer, path);
+         selectGender(surveyAnswer, client);
          break;
       case 4:
-         selectHobbies(surveyAnswer, path);
+         selectHobbies(surveyAnswer, client);
          break;
    }
 }
@@ -123,26 +123,30 @@ const handlePostRequest = (url, data) => {
         return redirect(`input/${clientInput}`); 
    }
    else if(url.match(/\/input.*/g)) {
-      let path = url.split('/')[2];
-      handleSurveyFlow(clientInput, path);
-      clients[path].step++;
-      return redirect(`input/${path}`);
+      let userName = url.split('/')[2];
+      let client = clients[userName];
+      handleSurveyFlow(clientInput, client);
+      client.step++;
+      return redirect(`input/${userName}`);
    }
 }
 
-const handleGetRequest = (url, data) => {
+const handleGetRequest = (url) => {
    if(url === '/signin' || url === '/homepage' || url === '/') {
       return signinPage;
    }
    else if(url.match(/\/input.*/g)) {
-      let path = url.split('/')[2];
+      let userName = url.split('/')[2];
+      if(!clients[userName]) {
+         return redirect('signin')
+      }
       return `HTTP/1.1 200 OK
       Content-Type: text/html
 
       <html><head>
       <h3>Survey App</h3>
-      <textarea style="width: 500px; height: 500px;">${clients[path].output}</textarea><br>
-      <form style="margin-top: 10px" action=/input/${path} method="post">
+      <textarea style="width: 500px; height: 500px;">${clients[userName].output}</textarea><br>
+      <form style="margin-top: 10px" action=/input/${userName} method="post">
          Input: <input type = "text" name = "client-input" value = "">
          <input type="submit" value="submit">
       </form>
@@ -159,7 +163,7 @@ const handleHttpMethod = (data) => {
    let url = getUrl(data);
 
    if(httpMethod === 'GET') {
-      return handleGetRequest(url, data);
+      return handleGetRequest(url);
    }
    else if (httpMethod === 'POST') {
       return handlePostRequest(url, data);
