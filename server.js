@@ -146,8 +146,9 @@ const handleGetRequest = (url) => {
       Content-Type: text/html
 
       <html><head>
-      <h3>Survey App</h3>
-      <textarea style="width: 500px; height: 500px;">${clients[userName].output}</textarea><br>
+      <h3>Hi, ${userName}</h3>
+      <p>Please answer the questions as truthfully as possible</p>
+      <textarea style="width: 500px; height: 500px; padding: 5px; border: 2px solid gray; border-radius: 3px">${clients[userName].output}</textarea><br>
       <form style="margin-top: 10px" action=/input/${userName} method="post">
          Input: <input type = "text" name = "client-input" value = "">
          <input type="submit" value="submit">
